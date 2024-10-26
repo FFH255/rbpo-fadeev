@@ -1,0 +1,10 @@
+hash_goal: "7365766164d41d8cd98f00b204e9800998ecf8427e"
+
+generator:
+  length: 5
+  characters: "abcdefghijklmnopqrstuvwxyz"
+  butch_size: 100000
+
+bruteforce:
+  algorithm: "md5"
+  workers: 12
