@@ -1,4 +1,4 @@
-MAIN_PKG = src/cmd/main.go
+MAIN_PKG = src/cmd/bruteforce/main.go
 
 BUILD_DIR = dist
 
