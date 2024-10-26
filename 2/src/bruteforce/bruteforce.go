@@ -2,32 +2,28 @@ package bruteforce
 
 import (
 	"context"
-	"crypto/md5"
-	"crypto/sha256"
 	"encoding/hex"
-	"fmt"
 	"hash"
+	"math"
+	"ssd-lab-pswd-go/src/generation"
 	"sync"
 )
 
-type Config struct {
-	Algorithm string `yaml:"algorithm" default:"md5"`
-	Workers   int    `yaml:"workers" default:"10"`
+func calculateButchSize(alphabet int, length int, buckets int) int {
+	total := math.Pow(float64(alphabet), float64(length))
+	return int(math.Floor(total / float64(buckets)))
 }
 
-func worker(ctx context.Context, cancel context.CancelFunc, wg *sync.WaitGroup, alg hash.Hash, candidatesChan <-chan string, goalHash string, result *string) {
+func bruteforce(ctx context.Context, cancel context.CancelFunc, wg *sync.WaitGroup, generator *generation.Generator, h hash.Hash, first int, last int, result *string, hash string) {
 	defer wg.Done()
-	for {
-		select {
-		case <-ctx.Done():
-			return
-
-		case candidate, ok := <-candidatesChan:
-			if !ok {
-				return
-			}
-			candidateHash := alg.Sum([]byte(candidate))
-			if hex.EncodeToString(candidateHash[:]) == goalHash {
+	select {
+	case <-ctx.Done():
+		return
+	default:
+		for i := first; i <= last; i++ {
+			candidate := generator.Generate(i)
+			candidateHash := hex.EncodeToString(h.Sum([]byte(candidate)))
+			if candidateHash == hash {
 				*result = candidate
 				cancel()
 				return
@@ -36,29 +32,24 @@ func worker(ctx context.Context, cancel context.CancelFunc, wg *sync.WaitGroup, 
 	}
 }
 
-func Bruteforce(ctx context.Context, cancel context.CancelFunc, cfg *Config, candidatesChan <-chan string, goalHash string) {
-	wg := &sync.WaitGroup{}
-
-	var alg hash.Hash
-
-	if cfg.Algorithm == "sha256" {
-		alg = sha256.New()
-	} else {
-		alg = md5.New()
-	}
-
+func Bruteforce(generator *generation.Generator, h hash.Hash, goal string, alphabet int, length int, workers int) *string {
 	result := new(string)
 
-	for i := 0; i < cfg.Workers; i++ {
+	wg := new(sync.WaitGroup)
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	butchSize := calculateButchSize(alphabet, length, workers)
+
+	for i := 0; i < workers; i++ {
 		wg.Add(1)
-		go worker(ctx, cancel, wg, alg, candidatesChan, goalHash, result)
+		first := i * butchSize
+		last := first + butchSize
+		go bruteforce(ctx, cancel, wg, generator, h, first, last, result, goal)
 	}
 
 	wg.Wait()
 
-	if result != nil && *result != "" {
-		fmt.Printf("password: %s\n", *result)
-	} else {
-		fmt.Printf("no password found\n")
-	}
+	return result
 }

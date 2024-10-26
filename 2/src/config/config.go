@@ -2,18 +2,16 @@ package config
 
 import (
 	"flag"
+	"github.com/ilyakaznacheev/cleanenv"
 	"log"
 	"os"
-	"ssd-lab-pswd-go/src/bruteforce"
-	"ssd-lab-pswd-go/src/generator"
-
-	"github.com/ilyakaznacheev/cleanenv"
 )
 
 type Config struct {
-	HashGoal   string            `yaml:"hash_goal"`
-	Generator  generator.Config  `yaml:"generator"`
-	Bruteforce bruteforce.Config `yaml:"bruteforce"`
+	Alg     string `yaml:"alg" default:"md5"`
+	Length  int    `yaml:"length" default:"5"`
+	Chars   string `yaml:"chars" default:"abcdefghijklmnopqrstuvwxyz"`
+	Workers int    `yaml:"workers" default:"12"`
 }
 
 func MustLoad() *Config {
